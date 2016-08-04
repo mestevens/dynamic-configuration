@@ -4,6 +4,7 @@ import ca.mestevens.java.configuration.TypesafeConfiguration;
 import ca.mestevens.java.dynamic.configuration.dropwizard.TestConfigApplication;
 import io.dropwizard.client.JerseyClientBuilder;
 import io.dropwizard.testing.junit.DropwizardAppRule;
+import lombok.SneakyThrows;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -26,7 +27,8 @@ public class DynamicConfigurationIntegrationTest {
     }
 
     @Test
-    public void dynamicConfigWorksAfter10Seconds() {
+    @SneakyThrows
+    public void dynamicConfigWorksAfterUpdate() {
 
         final Response response = client
                 .target(String.format("http://localhost:8080/test"))
@@ -34,6 +36,15 @@ public class DynamicConfigurationIntegrationTest {
                 .get();
 
         Assert.assertEquals("InitialValue", response.readEntity(String.class));
+
+        Thread.sleep(4000);
+
+        final Response secondResponse = client
+                .target(String.format("http://localhost:8080/test"))
+                .request()
+                .get();
+
+        Assert.assertEquals("asdf", secondResponse.readEntity(String.class));
 
     }
 

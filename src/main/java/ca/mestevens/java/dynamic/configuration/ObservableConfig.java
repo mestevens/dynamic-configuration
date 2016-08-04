@@ -1,5 +1,6 @@
 package ca.mestevens.java.dynamic.configuration;
 
+import ca.mestevens.java.dynamic.configuration.model.ActionIdentifier;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import lombok.Getter;
@@ -8,6 +9,7 @@ import rx.Observable;
 import rx.functions.Action1;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ObservableConfig {
@@ -17,7 +19,7 @@ public class ObservableConfig {
 
     private final Observable<Config> configObservable;
 
-    private final Map<String, List<Action1>> subscribeValues;
+    private final Map<String, List<ActionIdentifier>> subscribeValues;
 
     public ObservableConfig(final Config initialConfig,
                             final Observable<Config> configObservable) {
@@ -39,9 +41,9 @@ public class ObservableConfig {
                             }
                             if (!sameObject) {
                                 log.info("Key {} was updated in new config, updating subscribers.", key);
-                                final List<Action1> actions = subscribeValues.get(key);
+                                final List<ActionIdentifier> actions = subscribeValues.get(key);
                                 actions.stream()
-                                        .forEach(action -> action.call(object));
+                                        .forEach(actionIdentifier -> actionIdentifier.getAction().call(object));
                             }
                         } catch (final ConfigException.Missing ex) {
                             log.debug("Key {} was not found in new config.", key);
@@ -51,19 +53,27 @@ public class ObservableConfig {
         });
     }
 
-    public <T> void subscribe(final String key,
+    public <T> String subscribe(final String key,
                               final Action1<T> action) {
+        final ActionIdentifier actionIdentifier = new ActionIdentifier(action);
         if (subscribeValues.containsKey(key)) {
-            subscribeValues.get(key).add(action);
+            subscribeValues.get(key).add(actionIdentifier);
         } else {
-            final List<Action1> actionList = new ArrayList<>();
-            actionList.add(action);
+            final List<ActionIdentifier> actionList = new ArrayList<>();
+            actionList.add(actionIdentifier);
             subscribeValues.put(key, actionList);
         }
+        return actionIdentifier.getIdentifier();
     }
 
-    public void unsubscribe(final String key) {
-        subscribeValues.remove(key);
+    public void unsubscribe(final String key,
+                            final String identifier) {
+        if (subscribeValues.containsKey(key)) {
+            subscribeValues.put(key, subscribeValues.get(key)
+                    .stream()
+                    .filter(actionIdentifier -> !actionIdentifier.getIdentifier().equals(identifier))
+                    .collect(Collectors.toList()));
+        }
     }
 
 }

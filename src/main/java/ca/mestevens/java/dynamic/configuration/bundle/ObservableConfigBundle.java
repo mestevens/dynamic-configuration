@@ -1,51 +1,30 @@
 package ca.mestevens.java.dynamic.configuration.bundle;
 
-import ca.mestevens.java.configuration.TypesafeConfiguration;
-import ca.mestevens.java.configuration.bundle.TypesafeConfigurationBundle;
 import ca.mestevens.java.dynamic.configuration.ObservableConfig;
+import ca.mestevens.java.dynamic.configuration.data.ConfigAccess;
 import ca.mestevens.java.dynamic.configuration.managed.ConfigManaged;
-import com.amazonaws.services.s3.AmazonS3;
+import com.google.inject.Inject;
 import com.typesafe.config.Config;
-import io.dropwizard.ConfiguredBundle;
-import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import lombok.Getter;
 import rx.Observable;
 
-public class ObservableConfigBundle<T extends TypesafeConfiguration> implements ConfiguredBundle<T> {
+public class ObservableConfigBundle {
 
-    @Getter
-    private ObservableConfig observableConfig;
+    private final ConfigAccess configAccess;
 
-    private final AmazonS3 amazonS3;
-
-    public ObservableConfigBundle() {
-        this.amazonS3 = null;
+    @Inject
+    public ObservableConfigBundle(final ConfigAccess configAccess) {
+        this.configAccess = configAccess;
     }
 
-    public ObservableConfigBundle(final AmazonS3 amazonS3) {
-        this.amazonS3 = amazonS3;
-    }
-
-    @Override
-    public void initialize(final Bootstrap bootstrap) {
-        bootstrap.addBundle(new TypesafeConfigurationBundle());
-    }
-
-    @Override
-    public void run(final T configuration,
-                    final Environment environment) throws Exception {
+    public ObservableConfig configure(final Environment environment,
+                                      final Config config) {
         final Observable<Config> managedSubscriberObservable =
                 Observable.create(subscriber -> {
-                    final ConfigManaged configManaged;
-                    if (amazonS3 != null) {
-                        configManaged = new ConfigManaged(amazonS3, subscriber, configuration.getConfig());
-                    } else {
-                        configManaged = new ConfigManaged(subscriber, configuration.getConfig());
-                    }
+                    final ConfigManaged configManaged = new ConfigManaged(configAccess, subscriber, config);
                     environment.lifecycle().manage(configManaged);
                 });
 
-        this.observableConfig = new ObservableConfig(configuration.getConfig(), managedSubscriberObservable);
+        return new ObservableConfig(config, managedSubscriberObservable);
     }
 }
