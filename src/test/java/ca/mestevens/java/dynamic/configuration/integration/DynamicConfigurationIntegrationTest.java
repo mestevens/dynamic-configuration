@@ -1,5 +1,6 @@
 package ca.mestevens.java.dynamic.configuration.integration;
 
+import ca.mestevens.java.IntegrationTest;
 import ca.mestevens.java.configuration.TypesafeConfiguration;
 import ca.mestevens.java.dynamic.configuration.dropwizard.TestConfigApplication;
 import io.dropwizard.client.JerseyClientBuilder;
@@ -9,10 +10,12 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.core.Response;
 
+@Category(IntegrationTest.class)
 public class DynamicConfigurationIntegrationTest {
 
     @ClassRule

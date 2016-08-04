@@ -38,7 +38,6 @@ public class ConfigManaged implements Managed {
                 this.config = mergedConfig;
                 subscriber.onNext(mergedConfig);
             } catch (final Exception ex) {
-                log.info("{}", ex);
                 log.info("Problem getting the config from S3: {}", ex.getMessage());
             }
         });
