@@ -1,30 +1,38 @@
 package ca.mestevens.java.dynamic.configuration.bundle;
 
-import ca.mestevens.java.dynamic.configuration.ObservableConfig;
 import ca.mestevens.java.dynamic.configuration.data.ConfigAccess;
-import ca.mestevens.java.dynamic.configuration.managed.ConfigManaged;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.typesafe.config.Config;
-import io.dropwizard.setup.Environment;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import rx.Observable;
 
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
 public class ObservableConfigBundle {
 
-    private final ConfigAccess configAccess;
+    private Config lastConfig;
+
+    @Getter
+    private final Observable<Config> configObservable;
 
     @Inject
-    public ObservableConfigBundle(final ConfigAccess configAccess) {
-        this.configAccess = configAccess;
+    public ObservableConfigBundle(final ConfigAccess configAccess,
+                                  final Config config,
+                                  @Named("dynamic.configuration.poll.time") final Long pollTime) {
+        this.lastConfig = config;
+        this.configObservable = Observable.<Config>create(subscriber -> {
+            try {
+                final Config s3Config = configAccess.getConfig();
+                final Config mergedConfig = s3Config.withFallback(lastConfig);
+                this.lastConfig = mergedConfig;
+                subscriber.onNext(mergedConfig);
+            } catch (final Exception ex) {
+                log.info("Problem getting the config from S3: {}", ex.getMessage());
+            }
+        }).repeatWhen(observable -> Observable.interval(pollTime, TimeUnit.SECONDS));
     }
 
-    public ObservableConfig configure(final Environment environment,
-                                      final Config config) {
-        final Observable<Config> managedSubscriberObservable =
-                Observable.create(subscriber -> {
-                    final ConfigManaged configManaged = new ConfigManaged(configAccess, subscriber, config);
-                    environment.lifecycle().manage(configManaged);
-                });
-
-        return new ObservableConfig(config, managedSubscriberObservable);
-    }
 }

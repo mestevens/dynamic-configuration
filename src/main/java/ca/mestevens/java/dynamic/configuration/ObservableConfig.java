@@ -1,11 +1,12 @@
 package ca.mestevens.java.dynamic.configuration;
 
+import ca.mestevens.java.dynamic.configuration.bundle.ObservableConfigBundle;
 import ca.mestevens.java.dynamic.configuration.model.ActionIdentifier;
+import com.google.inject.Inject;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import rx.Observable;
 import rx.functions.Action1;
 
 import java.util.*;
@@ -17,16 +18,14 @@ public class ObservableConfig {
     @Getter
     private Config config;
 
-    private final Observable<Config> configObservable;
-
     private final Map<String, List<ActionIdentifier>> subscribeValues;
 
+    @Inject
     public ObservableConfig(final Config initialConfig,
-                            final Observable<Config> configObservable) {
+                            final ObservableConfigBundle observableConfigBundle) {
         this.config = initialConfig;
-        this.configObservable = configObservable;
         this.subscribeValues = new HashMap<>();
-        this.configObservable.subscribe(newConfig -> {
+        observableConfigBundle.getConfigObservable().subscribe(newConfig -> {
             subscribeValues.keySet().stream()
                     .forEach(key -> {
                         try {
