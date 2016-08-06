@@ -2,7 +2,7 @@
 
 ## Description
 
-A dropwizard based dynamic configuration add-on. Allows you to have typesafe config values that you can subscribe to for updates when they are updated.
+A dynamic configuration for typesafe configs.
 
 ## Dependency Information
 
@@ -10,7 +10,7 @@ A dropwizard based dynamic configuration add-on. Allows you to have typesafe con
 <dependency>
     <groupId>ca.mestevens.java</groupId>
     <artifactId>dynamic-configuration</artifactId>
-    <version>1.0</version>
+    <version>0.5</version>
 </dependency>
 ```
 

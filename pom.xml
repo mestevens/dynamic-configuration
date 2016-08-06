@@ -11,7 +11,7 @@
 
     <groupId>ca.mestevens.java</groupId>
     <artifactId>dynamic-configuration</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.5-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Dynamic Configuration</name>
