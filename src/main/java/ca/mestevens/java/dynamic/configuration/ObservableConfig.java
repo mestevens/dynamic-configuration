@@ -1,5 +1,9 @@
 package ca.mestevens.java.dynamic.configuration;
 
+import ca.mestevens.java.dynamic.configuration.data.ConfigAccess;
+import ca.mestevens.java.dynamic.configuration.model.ActionIdentifier;
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import lombok.Getter;
@@ -8,62 +12,100 @@ import rx.Observable;
 import rx.functions.Action1;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ObservableConfig {
 
     @Getter
     private Config config;
+    private final ConfigAccess configAccess;
+    private final Long pollTime;
+    private final Map<String, List<ActionIdentifier>> subscribeValues;
 
-    private final Observable<Config> configObservable;
-
-    private final Map<String, List<Action1>> subscribeValues;
-
+    @Inject
     public ObservableConfig(final Config initialConfig,
-                            final Observable<Config> configObservable) {
+                            final ConfigAccess configAccess,
+                            @Named("dynamic.configuration.poll.time")final Long pollTime) {
         this.config = initialConfig;
-        this.configObservable = configObservable;
+        this.configAccess = configAccess;
+        this.pollTime = pollTime;
         this.subscribeValues = new HashMap<>();
-        this.configObservable.subscribe(newConfig -> {
-            subscribeValues.keySet().stream()
-                    .forEach(key -> {
-                        try {
-                            final Object object = newConfig.getAnyRef(key);
-                            boolean sameObject = true;
-                            try {
-                                final Object oldObject = this.config.getAnyRef(key);
-                                sameObject = object.equals(oldObject);
-                            } catch (final ConfigException.Missing ex) {
-                                log.debug("Key {} was not found in old config.", key);
-                                sameObject = false;
-                            }
-                            if (!sameObject) {
-                                log.info("Key {} was updated in new config, updating subscribers.", key);
-                                final List<Action1> actions = subscribeValues.get(key);
-                                actions.stream()
-                                        .forEach(action -> action.call(object));
-                            }
-                        } catch (final ConfigException.Missing ex) {
-                            log.debug("Key {} was not found in new config.", key);
-                        }
-                    });
-            this.config = newConfig;
+        createObservable()
+                .repeatWhen(this::shouldRepeat)
+                .subscribe(this::subscription);
+    }
+
+    private Observable<Config> createObservable() {
+        return Observable.<Config>create(subscriber -> {
+            try {
+                final Config s3Config = configAccess.getConfig();
+                final Config mergedConfig = s3Config.withFallback(config);
+                subscriber.onNext(mergedConfig);
+            } catch (final Exception ex) {
+                log.error("Problem getting the config from S3: {}", ex.getMessage());
+            }
         });
     }
 
-    public <T> void subscribe(final String key,
-                              final Action1<T> action) {
-        if (subscribeValues.containsKey(key)) {
-            subscribeValues.get(key).add(action);
-        } else {
-            final List<Action1> actionList = new ArrayList<>();
-            actionList.add(action);
-            subscribeValues.put(key, actionList);
+    private Observable<Long> shouldRepeat(final Observable<? extends Void> observable) {
+        return Observable.interval(pollTime, TimeUnit.SECONDS);
+    }
+
+    private void subscription(final Config newConfig) {
+        subscribeValues.keySet().stream()
+                .forEach(key -> {
+                    try {
+                        final Object object = newConfig.getAnyRef(key);
+                        if (isObjectUpdated(object, key)) {
+                            log.info("Key {} was updated in new config, updating subscribers.", key);
+                            final List<ActionIdentifier> actions = subscribeValues.get(key);
+                            actions.stream()
+                                    .forEach(actionIdentifier -> actionIdentifier.getAction().call(object));
+                        }
+                    } catch (final ConfigException.Missing ex) {
+                        log.debug("Key {} was not found in new config.", key);
+                    }
+                });
+        this.config = newConfig;
+    }
+
+    private boolean isObjectUpdated(final Object object,
+                                    final String key) {
+        try {
+            final Object oldObject = this.config.getAnyRef(key);
+            return object.equals(oldObject);
+        } catch (final ConfigException.Missing ex) {
+            log.debug("Key {} was not found in old config.", key);
+            return false;
         }
     }
 
-    public void unsubscribe(final String key) {
-        subscribeValues.remove(key);
+    public <T> String subscribe(final String key,
+                              final Action1<T> action) {
+        final ActionIdentifier actionIdentifier = new ActionIdentifier(action);
+        if (subscribeValues.containsKey(key)) {
+            subscribeValues.get(key).add(actionIdentifier);
+        } else {
+            final List<ActionIdentifier> actionList = new ArrayList<>();
+            actionList.add(actionIdentifier);
+            subscribeValues.put(key, actionList);
+        }
+        final String identifier = actionIdentifier.getIdentifier();
+        log.info("Identifier {} subscribed to key {}.", identifier, key);
+        return identifier;
+    }
+
+    public void unsubscribe(final String key,
+                            final String identifier) {
+        if (subscribeValues.containsKey(key)) {
+            subscribeValues.put(key, subscribeValues.get(key)
+                    .stream()
+                    .filter(actionIdentifier -> !actionIdentifier.getIdentifier().equals(identifier))
+                    .collect(Collectors.toList()));
+            log.info("Identifier {} unsubscribed to key {}.", key);
+        }
     }
 
 }
