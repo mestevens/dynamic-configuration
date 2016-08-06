@@ -30,7 +30,7 @@ public class ObservableConfigBundle {
                 this.lastConfig = mergedConfig;
                 subscriber.onNext(mergedConfig);
             } catch (final Exception ex) {
-                log.info("Problem getting the config from S3: {}", ex.getMessage());
+                log.error("Problem getting the config from S3: {}", ex.getMessage());
             }
         }).repeatWhen(observable -> Observable.interval(pollTime, TimeUnit.SECONDS));
     }

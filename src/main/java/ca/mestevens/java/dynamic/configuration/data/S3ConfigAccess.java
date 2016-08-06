@@ -6,9 +6,11 @@ import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStreamReader;
 
+@Slf4j
 public class S3ConfigAccess implements ConfigAccess {
 
     private final AmazonS3 s3Client;
@@ -27,6 +29,7 @@ public class S3ConfigAccess implements ConfigAccess {
     @Override
     public Config getConfig() {
         final S3Object s3 = s3Client.getObject(bucket, key);
+        log.info("Successfully got the config from S3.");
         return ConfigFactory.parseReader(new InputStreamReader(s3.getObjectContent()));
     }
 

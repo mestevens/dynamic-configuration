@@ -45,20 +45,7 @@ public class TestConfigApplication extends Application<TypesafeConfiguration> {
         final Injector injector = Guice.createInjector(
                 new ObservableConfigS3Module(config.getDuration("s3.dynamic.config.pollTime"),
                         config.getString("s3.dynamic.config.bucket"),
-                        config.getString("s3.dynamic.config.key")),
-                new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        bind(Config.class).toInstance(configuration.getConfig());
-                        final AWSCredentialsProviderChain awsCredentialsProviderChain = new AWSCredentialsProviderChain(
-                                new ProfileCredentialsProvider(),
-                                new EnvironmentVariableCredentialsProvider(),
-                                new SystemPropertiesCredentialsProvider(),
-                                new InstanceProfileCredentialsProvider());
-                        final AmazonS3 amazonS3 = new AmazonS3Client(awsCredentialsProviderChain);
-                        bind(AmazonS3.class).toInstance(amazonS3);
-                    }
-                });
+                        config.getString("s3.dynamic.config.key")));
 
         environment.jersey().register(injector.getInstance(TestResource.class));
         environment.jersey().register(injector.getInstance(AnotherResource.class));

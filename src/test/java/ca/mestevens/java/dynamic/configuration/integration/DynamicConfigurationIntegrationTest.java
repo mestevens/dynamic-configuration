@@ -47,7 +47,7 @@ public class DynamicConfigurationIntegrationTest {
                 .request()
                 .get();
 
-        Assert.assertEquals("asdf", secondResponse.readEntity(String.class));
+        Assert.assertEquals("Value on S3", secondResponse.readEntity(String.class));
 
     }
 

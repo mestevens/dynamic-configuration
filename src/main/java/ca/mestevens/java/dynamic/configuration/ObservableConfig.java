@@ -30,15 +30,7 @@ public class ObservableConfig {
                     .forEach(key -> {
                         try {
                             final Object object = newConfig.getAnyRef(key);
-                            boolean sameObject = true;
-                            try {
-                                final Object oldObject = this.config.getAnyRef(key);
-                                sameObject = object.equals(oldObject);
-                            } catch (final ConfigException.Missing ex) {
-                                log.debug("Key {} was not found in old config.", key);
-                                sameObject = false;
-                            }
-                            if (!sameObject) {
+                            if (isObjectUpdated(object, key)) {
                                 log.info("Key {} was updated in new config, updating subscribers.", key);
                                 final List<ActionIdentifier> actions = subscribeValues.get(key);
                                 actions.stream()
@@ -72,6 +64,17 @@ public class ObservableConfig {
                     .stream()
                     .filter(actionIdentifier -> !actionIdentifier.getIdentifier().equals(identifier))
                     .collect(Collectors.toList()));
+        }
+    }
+
+    private boolean isObjectUpdated(final Object object,
+                                    final String key) {
+        try {
+            final Object oldObject = this.config.getAnyRef(key);
+            return object.equals(oldObject);
+        } catch (final ConfigException.Missing ex) {
+            log.debug("Key {} was not found in old config.", key);
+            return false;
         }
     }
 
