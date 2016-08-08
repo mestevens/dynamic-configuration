@@ -38,7 +38,7 @@ public class ObservableConfig {
     }
 
     private Observable<Config> createObservable() {
-        return Observable.<Config>create(subscriber -> {
+        return Observable.create(subscriber -> {
             try {
                 final Config s3Config = configAccess.getConfig();
                 final Config mergedConfig = s3Config.withFallback(config);
