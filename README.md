@@ -4,6 +4,8 @@
 
 A dynamic configuration for typesafe configs.
 
+This project uses [Rx Java](https://github.com/ReactiveX/RxJava) in order to generate an observable sequence and keep this running asynchronously.
+
 ## Dependency Information
 
 ```
