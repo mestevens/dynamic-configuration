@@ -43,8 +43,8 @@ public class ObservableConfig {
                 final Config s3Config = configAccess.getConfig();
                 final Config mergedConfig = s3Config.withFallback(config);
                 subscriber.onNext(mergedConfig);
-            } catch (final Exception ex) {
-                log.error("Problem getting the config from S3: {}", ex.getMessage());
+            } catch (final Throwable throwable) {
+                log.error("Problem getting the config from S3: {}", throwable.getMessage());
             }
         });
     }
@@ -62,7 +62,13 @@ public class ObservableConfig {
                             log.info("Key {} was updated in new config, updating subscribers.", key);
                             final List<ActionIdentifier> actions = subscribeValues.get(key);
                             actions.stream()
-                                    .forEach(actionIdentifier -> actionIdentifier.getAction().call(object));
+                                    .forEach(actionIdentifier -> {
+                                        try {
+                                            actionIdentifier.getAction().call(object);
+                                        } catch (final Throwable throwable) {
+                                            log.error("Identifier {} threw exception.", actionIdentifier.getIdentifier(), throwable);
+                                        }
+                                    });
                         }
                     } catch (final ConfigException.Missing ex) {
                         log.debug("Key {} was not found in new config.", key);
@@ -104,7 +110,10 @@ public class ObservableConfig {
                     .stream()
                     .filter(actionIdentifier -> !actionIdentifier.getIdentifier().equals(identifier))
                     .collect(Collectors.toList()));
-            log.info("Identifier {} unsubscribed to key {}.", key);
+            if (subscribeValues.get(key).size() == 0) {
+                subscribeValues.remove(key);
+            }
+            log.info("Identifier {} unsubscribed to key {}.", identifier, key);
         }
     }
 
