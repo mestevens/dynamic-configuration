@@ -4,13 +4,15 @@
 
 A dynamic configuration for typesafe configs.
 
+This project uses [Rx Java](https://github.com/ReactiveX/RxJava) in order to generate an observable sequence and keep this running asynchronously.
+
 ## Dependency Information
 
 ```
 <dependency>
     <groupId>ca.mestevens.java</groupId>
     <artifactId>dynamic-configuration</artifactId>
-    <version>0.5</version>
+    <version>0.6</version>
 </dependency>
 ```
 

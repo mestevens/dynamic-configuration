@@ -28,17 +28,9 @@ public class DynamicConfigurationIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Ignore
     public void dynamicConfigWorksAfterUpdate() {
 
-        final Response response = client
-                .target(String.format("http://localhost:8080/test"))
-                .request()
-                .get();
-
-        //Assert.assertEquals("InitialValue", response.readEntity(String.class));
-
-        Thread.sleep(4000);
+        Thread.sleep(1000);
 
         final Response secondResponse = client
                 .target(String.format("http://localhost:8080/test"))
