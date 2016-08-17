@@ -12,7 +12,7 @@ This project uses [Rx Java](https://github.com/ReactiveX/RxJava) in order to gen
 <dependency>
     <groupId>ca.mestevens.java</groupId>
     <artifactId>dynamic-configuration</artifactId>
-    <version>0.5</version>
+    <version>0.6</version>
 </dependency>
 ```
 
